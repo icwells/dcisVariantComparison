@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/icwells/go-tools/iotools"
 	"strings"
+	"sync"
 )
 
 func (v *variants) writeOutput() {
@@ -39,12 +40,12 @@ func (v *variants) examineVariant(id string, h map[string]int, row []string) {
 	}
 }
 
-func (v *variants) readVCF(id, infile string) {
+func (v *variants) readVCF(wg *sync.WaitGroup, id, infile string) {
 	// Reads in infile as a dictionary stored by chromosome
 	var h map[string]int
 	var d string
 	head := true
-	fmt.Printf("\tReading variants from %s...", id)
+	defer wg.Done()
 	f := iotools.OpenFile(infile)
 	defer f.Close()
 	input := iotools.GetScanner(f)
@@ -64,7 +65,13 @@ func (v *variants) readVCF(id, infile string) {
 
 func (v *variants) compareVariants() {
 	// Compares input vcfs against variants file
+	count := 1
+	var wg sync.WaitGroup
 	for k, val := range v.vcfs {
-		v.readVCF(k, val)
+		wg.Add(1)
+		go v.readVCF(&wg, k, val)
+		fmt.Printf("\r\tDispatched %d of %d vcf files.", count, len(v.vcfs))
+		count++
 	}
+	wg.Wait()
 }
