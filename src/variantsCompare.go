@@ -26,7 +26,7 @@ func (v *variants) writeOutput() {
 
 func (v *variants) examineVariant(id string, h map[string]int, row []string) {
 	// Compares variant to v.variants
-	chr := row[h["CHROM"]]
+	chr := v.setChromosome(row[h["CHROM"]])
 	pos := setCoordinate(row[h["POS"]])
 	ref := row[h["REF"]]
 	alt := row[h["ALT"]]

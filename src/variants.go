@@ -63,12 +63,12 @@ func (v *variants) setChromosome(val string) string {
 	if strings.Contains(val, ".0") {
 		val = strings.Split(val, ".")[0]
 	}
-	return val
+	return strings.TrimSpace(val)
 }
 
 func (v *variants) setVariant(h map[string]int, row []string) {
 	// Reads variant from row and stores in map
-	id := row[h["Patient"]]
+	id := strings.TrimSpace(row[h["Patient"]])
 	chr := v.setChromosome(row[h["Chr"]])
 	start := row[h["Start"]]
 	end := row[h["End"]]

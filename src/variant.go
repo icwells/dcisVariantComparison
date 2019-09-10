@@ -37,9 +37,9 @@ func newVariant(id, chr, start, end, ref, alt, name string) *variant {
 	v.chr = chr
 	v.start = setCoordinate(start)
 	v.end = setCoordinate(end)
-	v.ref = ref
-	v.alt = alt
-	v.name = name
+	v.ref = strings.ToUpper(strings.TrimSpace(ref))
+	v.alt = strings.ToUpper(strings.TrimSpace(alt))
+	v.name = strings.TrimSpace(name)
 	return v
 }
 
@@ -50,6 +50,8 @@ func (v *variant) String() string {
 
 func (v *variant) equals(pos int, ref, alt string) bool {
 	// Returns true if pos is inside v.start/end and ref == v.ref
+	ref = strings.ToUpper(strings.TrimSpace(ref))
+	alt = strings.ToUpper(strings.TrimSpace(alt))
 	if v.start <= pos && v.end >= pos && ref == v.ref && alt == v.alt {
 		v.matches++
 		return true
