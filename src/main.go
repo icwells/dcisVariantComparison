@@ -19,7 +19,7 @@ var (
 
 func checkArgs() {
 	// Exists if input is missing
-	for _, i := range []string{*infile, *vcfs, *outfile} {
+	for _, i := range []string{*infile, *vcfs} {
 		if iotools.Exists(i) == false {
 			fmt.Printf("\n\t[Error] %s not found. Exiting.\n", i)
 			os.Exit(1)

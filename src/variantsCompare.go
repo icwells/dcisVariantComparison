@@ -67,11 +67,14 @@ func (v *variants) compareVariants() {
 	// Compares input vcfs against variants file
 	count := 1
 	var wg sync.WaitGroup
-	for k, val := range v.vcfs {
-		wg.Add(1)
-		go v.readVCF(&wg, k, val)
-		fmt.Printf("\r\tDispatched %d of %d vcf files.", count, len(v.vcfs))
-		count++
+	for k, vals := range v.vcfs {
+		for _, i := range vals {
+			wg.Add(1)
+			go v.readVCF(&wg, k, i)
+			fmt.Printf("\r\tDispatched %d of %d vcf files.", count, v.files)
+			count++
+		}
 	}
+	fmt.Print("\n")
 	wg.Wait()
 }

@@ -14,19 +14,18 @@ import (
 
 type variants struct {
 	infile  string
-	vcfs    map[string]string
+	vcfs    map[string][]string
+	files   int
 	outfile string
 	vars    map[string]map[string][]*variant
 }
 
 func (v *variants) getSampleID(filename string) string {
 	// Attempts to resolve result of getSampleName with variants keys
-	name := iotools.GetFileName(filename)
-	name = strings.Split(name, "_")[0]
-	n := strings.Split(name, "-")
+	n := strings.Split(iotools.GetFileName(filename), "-")
 	// Add DCIS and Sample name
 	ret := n[0] + n[1]
-	if _, err := strconv.Atoi(string(n[2][0])); err == nil {
+	if _, err := strconv.Atoi(string(n[2][1])); err == nil {
 		// Add alpha-numeric codes
 		ret = fmt.Sprintf("%s_%s", ret, n[2])
 	}
@@ -42,17 +41,18 @@ func (v *variants) getSampleID(filename string) string {
 
 func (v *variants) setVCFs(vcfs string) {
 	// Reads in map of vcf files
-	v.vcfs = make(map[string]string)
+	v.vcfs = make(map[string][]string)
 	files, err := filepath.Glob(path.Join(vcfs, "*.vcf"))
-	if err != nil {
+	if err == nil {
 		for _, i := range files {
 			n := v.getSampleID(i)
 			if n != "" {
-				v.vcfs[n] = i
+				v.vcfs[n] = append(v.vcfs[n], i)
+				v.files++
 			}
 		}
 	}
-	if len(v.vcfs) == 0 {
+	if v.files < 1 {
 		fmt.Print("\n\t[Error] No matching vcfs files found. Exiting.\n\n")
 		os.Exit(1)
 	}
