@@ -71,6 +71,7 @@ func (v *variants) examineBamReadcount(id string, h map[string]int, row []string
 		alts := v.getAlternates(ref, row)
 		if len(alts) >= 1 {
 			for _, a := range alts {
+				v.neu++
 				for _, i := range v.vars[id][chr] {
 					if i.equals(pos, ref, a) {
 						// Equals method records hits if true
@@ -92,7 +93,7 @@ func (v *variants) examineVCF(id string, h map[string]int, row []string) {
 		v.neu++
 		for _, i := range v.vars[id][chr] {
 			if i.equals(pos, ref, alt) {
-				// Equals method records hits if true
+				// Equals method will record matches
 				break
 			}
 		}
@@ -110,18 +111,18 @@ func (v *variants) readVCF(wg *sync.WaitGroup, id, infile string) {
 	defer f.Close()
 	input := iotools.GetScanner(f)
 	for input.Scan() {
-		line := string(input.Text())
+		line := strings.TrimSpace(string(input.Text()))
 		if head == true {
-			if line[:2] == "##" && vcf == false {
-				// Record file format
-				vcf = true
-			} else if line[0] == '#' && line[1] != '#' {
+			if line[0] == '#' && line[1] != '#' {
 				// Skip over remaining vcf header
 				line = strings.Replace(line, "#", "", 1)
 				d = iotools.GetDelim(line)
 				h = iotools.GetHeader(strings.Split(line, d))
 				head = false
-			} else {
+			} else if strings.Contains(line, "##") && vcf == false {
+				// Record file format
+				vcf = true
+			} else if vcf == false {
 				// Read first line of bam-readcount output
 				d = iotools.GetDelim(line)
 				v.examineBamReadcount(id, h, strings.Split(line, d))
