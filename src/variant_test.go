@@ -1,10 +1,42 @@
-// Tests variants struct
+// Tests variant struct
 
 package main
 
 import (
 	"testing"
 )
+
+func TestGetSampleID(t *testing.T) {
+	var v variants
+	v.vars = make(map[string]map[string][]*variant)
+	v.vars["DCIS64"] = make(map[string][]*variant)
+	v.vars["DCIS267"] = make(map[string][]*variant)
+	v.vars["DCIS168_C4"] = make(map[string][]*variant)
+	cases := map[string]string{
+		"ampliseq2/vcfs/DCIS-064-A61.vcf": "DCIS64",
+		"/ampliseq2/vcfs/DCIS-064-A81-inv.vcf": "DCIS64",
+		"ampliseq2/vcfs/DCIS-267-B1-node.vcf": "DCIS267",
+		"ampliseq2/vcfs/DCIS-168-C4-inv.vcf": "DCIS168_C4",
+		"ampliseq2/vcfs/DCIS-300-C4-inv.vcf": "",
+	}
+	for k, val := range cases {
+		act := v.getSampleID(k)
+		if act != val {
+			t.Errorf("Actual sample ID %s does not equal expected: %s", act, val)
+		}
+	}
+}
+
+func TestSetChromosome(t *testing.T) {
+	var v variants
+	cases := map[string]string{"1.0 ": "1", " 2 ": "2", "GL001.0": "GL001", " X": "X"}
+	for k, val := range cases {
+		act := v.setChromosome(k)
+		if act != val {
+			t.Errorf("Actual chromosome %s does not equal expected: %s", act, val)
+		}
+	}
+}
 
 func TestSetCoordinate(t *testing.T) {
 	cases := []struct {
