@@ -13,11 +13,11 @@ func TestGetSampleID(t *testing.T) {
 	v.vars["DCIS267"] = make(map[string][]*variant)
 	v.vars["DCIS168_C4"] = make(map[string][]*variant)
 	cases := map[string]string{
-		"ampliseq2/vcfs/DCIS-064-A61.vcf": "DCIS64",
+		"ampliseq2/vcfs/DCIS-064-A61.vcf":      "DCIS64",
 		"/ampliseq2/vcfs/DCIS-064-A81-inv.vcf": "DCIS64",
-		"ampliseq2/vcfs/DCIS-267-B1-node.vcf": "DCIS267",
-		"ampliseq2/vcfs/DCIS-168-C4-inv.vcf": "DCIS168_C4",
-		"ampliseq2/vcfs/DCIS-300-C4-inv.vcf": "",
+		"ampliseq2/vcfs/DCIS-267-B1-node.vcf":  "DCIS267",
+		"ampliseq2/vcfs/DCIS-168-C4-inv.vcf":   "DCIS168_C4",
+		"ampliseq2/vcfs/DCIS-300-C4-inv.vcf":   "",
 	}
 	for k, val := range cases {
 		act := v.getSampleID(k)

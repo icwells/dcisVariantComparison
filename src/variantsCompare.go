@@ -45,13 +45,51 @@ func (v *variants) writeOutput() {
 	fmt.Printf("\tIdentified %d variants with an average coverage of %s.\n", total, v.getAverage(total, matched))
 }
 
-func (v *variants) examineVariant(id string, h map[string]int, row []string) {
-	// Compares variant to v.variants
-	chr := v.setChromosome(row[h["CHROM"]])
-	pos := setCoordinate(row[h["POS"]])
-	ref := row[h["REF"]]
-	alt := row[h["ALT"]]
+func (v *variants) getAlternates(ref string, row []string) []string {
+	// Extracts alternate alleles from row
+	var ret []string
+	if len(row) >= 5 {
+		for _, i := range row[4:] {
+			s := strings.Split(i, ":")
+			if s[0] != "=" && s[0] != ref {
+				count, err := strconv.Atoi(s[1])
+				if err == nil && count > 0 {
+					ret = append(ret, s[0])
+				}
+			}
+		}
+	}
+	return ret
+}
+
+func (v *variants) examineBamReadcount(id string, h map[string]int, row []string) {
+	// Compares variant from bam-readcount to v.vars
+	chr := v.setChromosome(row[0])
 	if _, ex := v.vars[id][chr]; ex == true {
+		pos := setCoordinate(row[1])
+		ref := row[2]
+		alts := v.getAlternates(ref, row)
+		if len(alts) >= 1 {
+			for _, a := range alts {
+				for _, i := range v.vars[id][chr] {
+					if i.equals(pos, ref, a) {
+						// Equals method records hits if true
+						break
+					}
+				}
+			}
+		}
+	}
+}
+
+func (v *variants) examineVCF(id string, h map[string]int, row []string) {
+	// Compares variant from vcf to v.vars
+	chr := v.setChromosome(row[h["CHROM"]])
+	if _, ex := v.vars[id][chr]; ex == true {
+		pos := setCoordinate(row[h["POS"]])
+		ref := row[h["REF"]]
+		alt := row[h["ALT"]]
+		v.neu++
 		for _, i := range v.vars[id][chr] {
 			if i.equals(pos, ref, alt) {
 				// Equals method records hits if true
@@ -66,21 +104,33 @@ func (v *variants) readVCF(wg *sync.WaitGroup, id, infile string) {
 	var h map[string]int
 	var d string
 	head := true
+	vcf := false
 	defer wg.Done()
 	f := iotools.OpenFile(infile)
 	defer f.Close()
 	input := iotools.GetScanner(f)
 	for input.Scan() {
 		line := string(input.Text())
-		if head == false {
-			v.examineVariant(id, h, strings.Split(line, d))
-			v.neu++
-		} else if line[0] == '#' && line[1] != '#' {
-			// Skip over vcf header
-			line = strings.Replace(line, "#", "", 1)
-			d = iotools.GetDelim(line)
-			h = iotools.GetHeader(strings.Split(line, d))
-			head = false
+		if head == true {
+			if line[:2] == "##" && vcf == false {
+				// Record file format
+				vcf = true
+			} else if line[0] == '#' && line[1] != '#' {
+				// Skip over remaining vcf header
+				line = strings.Replace(line, "#", "", 1)
+				d = iotools.GetDelim(line)
+				h = iotools.GetHeader(strings.Split(line, d))
+				head = false
+			} else {
+				// Read first line of bam-readcount output
+				d = iotools.GetDelim(line)
+				v.examineBamReadcount(id, h, strings.Split(line, d))
+				head = false
+			}
+		} else if vcf == true {
+			v.examineVCF(id, h, strings.Split(line, d))
+		} else {
+			v.examineBamReadcount(id, h, strings.Split(line, d))
 		}
 	}
 }
