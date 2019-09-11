@@ -18,6 +18,8 @@ type variants struct {
 	files   int
 	outfile string
 	vars    map[string]map[string][]*variant
+	total   int
+	neu		int
 }
 
 func (v *variants) getSampleID(filename string) string {
@@ -80,6 +82,7 @@ func (v *variants) setVariant(h map[string]int, row []string) {
 	}
 	newvar := newVariant(id, chr, start, end, ref, alt, name)
 	v.vars[id][chr] = append(v.vars[id][chr], newvar)
+	v.total++
 }
 
 func (v *variants) setVariants() {

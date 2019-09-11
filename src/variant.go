@@ -20,15 +20,6 @@ func setCoordinate(n string) int {
 	return ret
 }
 
-func (v *variant) setAllele(val string) string {
-	// Makes sure alleles are in the same format
-	ret := strings.ToUpper(strings.TrimSpace(val))
-	if ret == "." {
-		ret = "-"
-	}
-	return ret
-}
-
 type variant struct {
 	id      string
 	name    string
@@ -38,6 +29,15 @@ type variant struct {
 	ref     string
 	alt     string
 	matches int
+}
+
+func (v *variant) setAllele(val string) string {
+	// Makes sure alleles are in the same format
+	ret := strings.ToUpper(strings.TrimSpace(val))
+	if ret == "." {
+		ret = "-"
+	}
+	return ret
 }
 
 func newVariant(id, chr, start, end, ref, alt, name string) *variant {
