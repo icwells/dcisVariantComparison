@@ -19,7 +19,7 @@ type variants struct {
 	outfile string
 	vars    map[string]map[string][]*variant
 	total   int
-	neu		int
+	neu     int
 }
 
 func (v *variants) getSampleID(filename string) string {

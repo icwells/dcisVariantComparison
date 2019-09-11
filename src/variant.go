@@ -10,6 +10,7 @@ import (
 
 func setCoordinate(n string) int {
 	// Removes decimal from coordinate number
+	n = strings.Replace(n, ",", "", -1)
 	if strings.Contains(n, ".") {
 		n = strings.Split(n, ".")[0]
 	}
