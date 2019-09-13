@@ -29,6 +29,7 @@ type variant struct {
 	end     int
 	ref     string
 	alt     string
+	freq    string
 	matches int
 }
 
@@ -50,12 +51,20 @@ func newVariant(id, chr, start, end, ref, alt, name string) *variant {
 	v.ref = v.setAllele(ref)
 	v.alt = v.setAllele(alt)
 	v.name = strings.TrimSpace(name)
+	v.freq = "NA"
 	return v
 }
 
 func (v *variant) String() string {
 	// Returns formatted string for printing
-	return fmt.Sprintf("%s,%s,%d,%d,%s,%d\n", v.id, v.chr, v.start, v.end, v.name, v.matches)
+	return fmt.Sprintf("%s,%s,%d,%d,%s,%d,%s\n", v.id, v.chr, v.start, v.end, v.name, v.matches, v.freq)
+}
+
+func (v *variant) appendFrequency(f string) {
+	// Stores variant allele frequency
+	if v.freq == "NA" {
+		v.freq = f
+	}
 }
 
 func (v *variant) equals(pos int, ref, alt string) bool {

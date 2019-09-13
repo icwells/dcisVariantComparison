@@ -27,7 +27,7 @@ func (v *variants) writeOutput() {
 	fmt.Println("\tWriting results to file...")
 	out := iotools.CreateFile(v.outfile)
 	defer out.Close()
-	out.WriteString("Patient,Chr,Start,End,Name,Coverage\n")
+	out.WriteString("Patient,Chr,Start,End,Name,Coverage,AlleleFrequency\n")
 	for _, val := range v.vars {
 		for _, v := range val {
 			for _, i := range v {
@@ -83,6 +83,20 @@ func (v *variants) examineBamReadcount(id string, h map[string]int, row []string
 	}
 }
 
+func (v *variants) getAlleleFrequencyFromVCF(s string) string {
+	// Subsets variant allele frequency from vcf info section
+	ret := "NA"
+	s = s[strings.Index(s, "AF="):]
+	s = s[strings.Index(s, "=")+1:]
+	if strings.Contains(s, ";") {
+		s = s[:strings.Index(s, ";")]
+	}
+	if _, err := strconv.ParseFloat(s, 64); err == nil {
+		ret = s
+	}
+	return ret
+}
+
 func (v *variants) examineVCF(id string, h map[string]int, row []string) {
 	// Compares variant from vcf to v.vars
 	chr := v.setChromosome(row[h["CHROM"]])
@@ -94,6 +108,8 @@ func (v *variants) examineVCF(id string, h map[string]int, row []string) {
 		for _, i := range v.vars[id][chr] {
 			if i.equals(pos, ref, alt) {
 				// Equals method will record matches
+				freq := v.getAlleleFrequencyFromVCF(row[h["INFO"]])
+				i.appendFrequency(freq)
 				break
 			}
 		}

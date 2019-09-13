@@ -6,6 +6,18 @@ import (
 	"testing"
 )
 
+func TestGetAlleleFrequencyFromVCF(t *testing.T) {
+	var v variants
+	info := []string{"AB=0.454545;ABP=3.20771;AC=1;AF=0.5", "AB=0;ABP=0;AC=2;AF=1", "AB=0.454545;AF=0.5;ABP=3.20771;AC=1", "AB=0;ABP=0;AF=0.25;AC=2"}
+	exp := []string{"0.5", "1", "0.5", "0.25"}
+	for idx, i := range info {
+		act := v.getAlleleFrequencyFromVCF(i)
+		if act != exp[idx] {
+			t.Errorf("Actual allele frequency %s does not equal expected: %s.", act, exp[idx])
+		}
+	}
+}
+
 func TestGetSampleID(t *testing.T) {
 	var v variants
 	v.vars = make(map[string]map[string][]*variant)
