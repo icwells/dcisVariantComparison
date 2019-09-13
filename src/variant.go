@@ -28,7 +28,9 @@ type variant struct {
 	start   int
 	end     int
 	ref     string
+	rcount  int
 	alt     string
+	acount  int
 	freq    string
 	matches int
 }
@@ -57,7 +59,13 @@ func newVariant(id, chr, start, end, ref, alt, name string) *variant {
 
 func (v *variant) String() string {
 	// Returns formatted string for printing
-	return fmt.Sprintf("%s,%s,%d,%d,%s,%d,%s\n", v.id, v.chr, v.start, v.end, v.name, v.matches, v.freq)
+	return fmt.Sprintf("%s,%s,%d,%d,%s,%s,%s,%d,%d,%d,%s\n", v.id, v.chr, v.start, v.end, v.ref, v.alt, v.name, v.matches, v.rcount, v.acount, v.freq)
+}
+
+func (v *variant) addCounts(a, r int) {
+	// Adds number of reads with ref/alt alleles
+	v.acount = a
+	v.rcount = r
 }
 
 func (v *variant) appendFrequency(f string) {
