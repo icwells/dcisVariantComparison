@@ -33,6 +33,7 @@ type variant struct {
 	acount  int
 	freq    string
 	matches int
+	bases   map[string]int
 }
 
 func (v *variant) setAllele(val string) string {
@@ -54,18 +55,39 @@ func newVariant(id, chr, start, end, ref, alt, name string) *variant {
 	v.alt = v.setAllele(alt)
 	v.name = strings.TrimSpace(name)
 	v.freq = "NA"
+	v.bases = map[string]int{"A": 0, "T": 0, "G": 0, "C": 0}
 	return v
+}
+
+func (v *variant) baseFrequencies() string {
+	// Returns string of base frequencies
+	return fmt.Sprintf("%d,%d,%d,%d", v.bases["A"], v.bases["T"], v.bases["G"], v.bases["C"])
 }
 
 func (v *variant) String() string {
 	// Returns formatted string for printing
-	return fmt.Sprintf("%s,%s,%d,%d,%s,%s,%s,%d,%d,%d,%s\n", v.id, v.chr, v.start, v.end, v.ref, v.alt, v.name, v.matches, v.rcount, v.acount, v.freq)
+	return fmt.Sprintf("%s,%s,%d,%d,%s,%s,%s,%d,%d,%d,%s,%s\n", v.id, v.chr, v.start, v.end, v.ref, v.alt, v.name, v.matches, v.rcount, v.acount, v.freq, v.baseFrequencies())
 }
 
-func (v *variant) addCounts(a, r int) {
+func (v *variant) calculateAlleleFrequency() {
+	// Calculates variant allele frequency from bam-readcount data
+	if v.rcount > 0 && v.acount > 0 {
+		f := float64(v.acount) / float64(v.acount+v.rcount)
+		v.freq = strconv.FormatFloat(f, 'f', 4, 64)
+	}
+}
+
+func (v *variant) addCounts(bases map[string]int) {
 	// Adds number of reads with ref/alt alleles
-	v.acount = a
-	v.rcount = r
+	for k, val := range bases {
+		if k == v.ref {
+			v.rcount += val
+		} else {
+			v.acount += val
+		}
+		v.bases[k] += val
+	}
+	v.calculateAlleleFrequency()
 }
 
 func (v *variant) appendFrequency(f string) {

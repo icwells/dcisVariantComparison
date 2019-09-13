@@ -27,7 +27,7 @@ func (v *variants) writeOutput() {
 	fmt.Println("\tWriting results to file...")
 	out := iotools.CreateFile(v.outfile)
 	defer out.Close()
-	out.WriteString("Patient,Chr,Start,End,REF,ALT,Name,Coverage,ReferenceReads,VariantReads,AlleleFrequency\n")
+	out.WriteString("Patient,Chr,Start,End,REF,ALT,Name,Coverage,ReferenceReads,VariantReads,AlleleFrequency,A,T,G,C\n")
 	for _, val := range v.vars {
 		for _, v := range val {
 			for _, i := range v {
@@ -45,36 +45,22 @@ func (v *variants) writeOutput() {
 	fmt.Printf("\tIdentified %d variants with an average coverage of %s.\n", total, v.getAverage(total, matched))
 }
 
-func (v *variants) calculateAlleleFrequency(a, r int) string {
-	// Calculates variant allele frequency from bam-readcount data
-	ret := "NA"
-	if a > 0 && r > 0 {
-		ret = v.getAverage(a, a+r)
-	}
-	return ret
-}
-
-func (v *variants) getAlternates(ref string, row []string) ([]string, int, int) {
+func (v *variants) getAlleles(ref string, row []string) map[string]int {
 	// Extracts alternate alleles from row
-	var ret []string
-	var r, a int
+	ret := make(map[string]int)
 	if len(row) >= 5 {
 		for _, i := range row[4:] {
 			s := strings.Split(i, ":")
-			if s[0] != "=" {
+			b := strings.ToUpper(s[0])
+			if b != "=" {
 				count, err := strconv.Atoi(s[1])
 				if err == nil && count > 0 {
-					if s[0] != ref {
-						ret = append(ret, s[0])
-						a += count
-					} else {
-						r = count
-					}
+					ret[b] = count
 				}
 			}
 		}
 	}
-	return ret, a, r
+	return ret
 }
 
 func (v *variants) examineBamReadcount(id string, h map[string]int, row []string) {
@@ -83,17 +69,17 @@ func (v *variants) examineBamReadcount(id string, h map[string]int, row []string
 	if _, ex := v.vars[id][chr]; ex == true {
 		pos := setCoordinate(row[1])
 		ref := row[2]
-		alts, ac, rc := v.getAlternates(ref, row)
-		freq := v.calculateAlleleFrequency(ac, rc)
-		if len(alts) >= 1 {
-			for _, a := range alts {
-				v.neu++
-				for _, i := range v.vars[id][chr] {
-					if i.equals(pos, ref, a) {
-						// Equals method records hits if true
-						i.addCounts(ac, rc)
-						i.appendFrequency(freq)
-						break
+		bases := v.getAlleles(ref, row)
+		if len(bases) >= 1 {
+			for k := range bases {
+				if k != ref {
+					v.neu++
+					for _, i := range v.vars[id][chr] {
+						if i.equals(pos, ref, k) {
+							// Equals method records hits if true
+							i.addCounts(bases)
+							break
+						}
 					}
 				}
 			}
