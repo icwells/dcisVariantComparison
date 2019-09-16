@@ -71,6 +71,7 @@ func (v *variants) setChromosome(val string) string {
 func (v *variants) setVariant(h map[string]int, row []string) {
 	// Reads variant from row and stores in map
 	id := strings.TrimSpace(row[h["Patient"]])
+	shared := strings.TrimSpace(row[h["Shared"]])
 	chr := v.setChromosome(row[h["Chr"]])
 	start := row[h["Start"]]
 	end := row[h["End"]]
@@ -80,7 +81,7 @@ func (v *variants) setVariant(h map[string]int, row []string) {
 	if _, ex := v.vars[id]; ex == false {
 		v.vars[id] = make(map[string][]*variant)
 	}
-	newvar := newVariant(id, chr, start, end, ref, alt, name)
+	newvar := newVariant(id, chr, start, end, ref, alt, name, shared)
 	v.vars[id][chr] = append(v.vars[id][chr], newvar)
 	v.total++
 }

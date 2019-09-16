@@ -24,6 +24,7 @@ func setCoordinate(n string) int {
 type variant struct {
 	id      string
 	name    string
+	shared  string
 	chr     string
 	start   int
 	end     int
@@ -45,7 +46,7 @@ func (v *variant) setAllele(val string) string {
 	return ret
 }
 
-func newVariant(id, chr, start, end, ref, alt, name string) *variant {
+func newVariant(id, chr, start, end, ref, alt, name, shared string) *variant {
 	v := new(variant)
 	v.id = id
 	v.chr = chr
@@ -54,6 +55,7 @@ func newVariant(id, chr, start, end, ref, alt, name string) *variant {
 	v.ref = v.setAllele(ref)
 	v.alt = v.setAllele(alt)
 	v.name = strings.TrimSpace(name)
+	v.shared = strings.TrimSpace(shared)
 	v.freq = "NA"
 	v.bases = map[string]int{"A": 0, "T": 0, "G": 0, "C": 0}
 	return v
@@ -66,7 +68,7 @@ func (v *variant) baseFrequencies() string {
 
 func (v *variant) String() string {
 	// Returns formatted string for printing
-	return fmt.Sprintf("%s,%s,%d,%d,%s,%s,%s,%d,%d,%d,%s,%s\n", v.id, v.chr, v.start, v.end, v.ref, v.alt, v.name, v.matches, v.rcount, v.acount, v.freq, v.baseFrequencies())
+	return fmt.Sprintf("%s,%s,%s,%d,%d,%s,%s,%s,%d,%d,%d,%s,%s\n", v.id, v.shared, v.chr, v.start, v.end, v.ref, v.alt, v.name, v.matches, v.rcount, v.acount, v.freq, v.baseFrequencies())
 }
 
 func (v *variant) calculateAlleleFrequency() {

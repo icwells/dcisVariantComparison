@@ -27,7 +27,7 @@ func (v *variants) writeOutput() {
 	fmt.Println("\tWriting results to file...")
 	out := iotools.CreateFile(v.outfile)
 	defer out.Close()
-	out.WriteString("Patient,Chr,Start,End,REF,ALT,Name,Coverage,ReferenceReads,VariantReads,AlleleFrequency,A,T,G,C\n")
+	out.WriteString("Patient,Shared,Chr,Start,End,REF,ALT,Name,Coverage,ReferenceReads,VariantReads,AlleleFrequency,A,T,G,C\n")
 	for _, val := range v.vars {
 		for _, v := range val {
 			for _, i := range v {

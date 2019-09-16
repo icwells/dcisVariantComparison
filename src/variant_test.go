@@ -83,10 +83,10 @@ func getVariants() map[string][]*variant {
 	// Returns map of variants for testing
 	ret := make(map[string][]*variant)
 	pid := "DCIS_1 "
-	ret["1"] = []*variant{newVariant(pid, "1", "100.0", "200.0", "A", "t", "NA")}
-	ret["1"] = append(ret["1"], newVariant(pid, "1", "1025", "1119", "G", "-", "NA"))
-	ret["2"] = []*variant{newVariant(pid, "2", "25006", "25124", "C", "G", "NA")}
-	ret["X"] = []*variant{newVariant(pid, "X", "90045", "90157.5", ".", "A", "NA")}
+	ret["1"] = []*variant{newVariant(pid, "1", "100.0", "200.0", "A", "t", "NA", "A")}
+	ret["1"] = append(ret["1"], newVariant(pid, "1", "1025", "1119", "G", "-", "NA", "A"))
+	ret["2"] = []*variant{newVariant(pid, "2", "25006", "25124", "C", "G", "NA", "A")}
+	ret["X"] = []*variant{newVariant(pid, "X", "90045", "90157.5", ".", "A", "NA", "A")}
 	return ret
 }
 
