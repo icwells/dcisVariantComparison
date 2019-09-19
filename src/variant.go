@@ -29,12 +29,10 @@ type variant struct {
 	start   int
 	end     int
 	ref     string
-	rcount  int
 	alt     string
-	acount  int
-	freq    string
 	matches int
-	bases   map[string]int
+	normal  *counts
+	tumor   *counts
 }
 
 func (v *variant) setAllele(val string) string {
@@ -56,57 +54,36 @@ func newVariant(id, chr, start, end, ref, alt, name, shared string) *variant {
 	v.alt = v.setAllele(alt)
 	v.name = strings.TrimSpace(name)
 	v.shared = strings.TrimSpace(shared)
-	v.freq = "NA"
-	v.bases = map[string]int{"A": 0, "T": 0, "G": 0, "C": 0}
+	v.normal = newCounts()
+	v.tumor = newCounts()
 	return v
-}
-
-func (v *variant) baseFrequencies() string {
-	// Returns string of base frequencies
-	return fmt.Sprintf("%d,%d,%d,%d", v.bases["A"], v.bases["T"], v.bases["G"], v.bases["C"])
 }
 
 func (v *variant) String() string {
 	// Returns formatted string for printing
-	return fmt.Sprintf("%s,%s,%s,%d,%d,%s,%s,%s,%d,%d,%d,%s,%s\n", v.id, v.shared, v.chr, v.start, v.end, v.ref, v.alt, v.name, v.matches, v.rcount, v.acount, v.freq, v.baseFrequencies())
+	n := v.normal.String()
+	t := v.tumor.String()
+	return fmt.Sprintf("%s,%s,%s,%d,%d,%s,%s,%s,%d,%s,%s\n", v.id, v.shared, v.chr, v.start, v.end, v.ref, v.alt, v.name, v.matches, t, n)
 }
 
-func (v *variant) calculateAlleleFrequency() {
-	// Calculates variant allele frequency from bam-readcount data
-	if v.rcount > 0 && v.acount > 0 {
-		f := float64(v.acount) / float64(v.acount+v.rcount)
-		v.freq = strconv.FormatFloat(f, 'f', 4, 64)
-	}
-}
-
-func (v *variant) addCounts(bases map[string]int) {
-	// Adds number of reads with ref/alt alleles
-	for k, val := range bases {
-		if k == v.ref {
-			v.rcount += val
-		} else {
-			v.acount += val
-		}
-		v.bases[k] += val
-	}
-	v.calculateAlleleFrequency()
-}
-
-func (v *variant) appendFrequency(f string) {
-	// Stores variant allele frequency
-	if v.freq == "NA" {
-		v.freq = f
-	}
-}
-
-func (v *variant) equals(pos int, ref, alt string) bool {
+func (v *variant) evaluate(normal bool, pos int, ref string, bases map[string]int) bool {
 	// Returns true if pos is inside v.start/end and ref == v.ref
+	ret := false
 	ref = v.setAllele(ref)
-	alt = v.setAllele(alt)
-	if v.start <= pos && v.end >= pos && ref == v.ref && alt == v.alt {
-		v.matches++
-		return true
-	} else {
-		return false
+	if v.start <= pos && v.end >= pos && ref == v.ref {
+		// Only proceed for potential match
+		for k := range bases {
+			k = v.setAllele(k)
+			if k == v.alt {
+				v.matches++
+				ret = true
+				if normal == true {
+					v.normal.addCounts(v.ref, bases)
+				} else {
+					v.tumor.addCounts(v.ref, bases)
+				}
+			}
+		}
 	}
+	return ret
 }

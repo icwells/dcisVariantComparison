@@ -27,7 +27,10 @@ func (v *variants) writeOutput() {
 	fmt.Println("\tWriting results to file...")
 	out := iotools.CreateFile(v.outfile)
 	defer out.Close()
-	out.WriteString("Patient,Shared,Chr,Start,End,REF,ALT,Name,Coverage,ReferenceReads,VariantReads,AlleleFrequency,A,T,G,C\n")
+	head := "Patient,Shared,Chr,Start,End,REF,ALT,Name,Coverage,"
+	head += "TReferenceReads,TVariantReads,TAlleleFrequency,A,T,G,C\n"
+	head += "NReferenceReads,NVariantReads,NAlleleFrequency,A,T,G,C\n"
+	out.WriteString(head)
 	for _, val := range v.vars {
 		for _, v := range val {
 			for _, i := range v {
@@ -63,7 +66,7 @@ func (v *variants) getAlleles(ref string, row []string) map[string]int {
 	return ret
 }
 
-func (v *variants) examineBamReadcount(id string, h map[string]int, row []string) {
+func (v *variants) examineBamReadcount(normal bool, id string, row []string) {
 	// Compares variant from bam-readcount to v.vars
 	chr := v.setChromosome(row[0])
 	if _, ex := v.vars[id][chr]; ex == true {
@@ -72,14 +75,13 @@ func (v *variants) examineBamReadcount(id string, h map[string]int, row []string
 		bases := v.getAlleles(ref, row)
 		if len(bases) >= 1 {
 			for k := range bases {
-				if k != ref {
+				if normal == false && k != ref {
 					v.neu++
-					for _, i := range v.vars[id][chr] {
-						if i.equals(pos, ref, k) {
-							// Equals method records hits if true
-							i.addCounts(bases)
-							break
-						}
+				}
+				for _, i := range v.vars[id][chr] {
+					if i.evaluate(normal, pos, ref, bases) {
+						// evaluate method records hits if true
+						break
 					}
 				}
 			}
@@ -87,72 +89,32 @@ func (v *variants) examineBamReadcount(id string, h map[string]int, row []string
 	}
 }
 
-func (v *variants) getAlleleFrequencyFromVCF(s string) string {
-	// Subsets variant allele frequency from vcf info section
-	ret := "NA"
-	s = s[strings.Index(s, "AF="):]
-	s = s[strings.Index(s, "=")+1:]
-	if strings.Contains(s, ";") {
-		s = s[:strings.Index(s, ";")]
-	}
-	if _, err := strconv.ParseFloat(s, 64); err == nil {
-		ret = s
+func (v *variants) getNormalStatus(infile string) bool {
+	// Returns true if infile is of normal tissue
+	ret := false
+	f := strings.ToLower(infile)
+	if strings.Contains(f, "node") || strings.Contains(f, "benign") {
+		ret = true
 	}
 	return ret
 }
 
-func (v *variants) examineVCF(id string, h map[string]int, row []string) {
-	// Compares variant from vcf to v.vars
-	chr := v.setChromosome(row[h["CHROM"]])
-	if _, ex := v.vars[id][chr]; ex == true {
-		pos := setCoordinate(row[h["POS"]])
-		ref := row[h["REF"]]
-		alt := row[h["ALT"]]
-		v.neu++
-		for _, i := range v.vars[id][chr] {
-			if i.equals(pos, ref, alt) {
-				// Equals method will record matches
-				freq := v.getAlleleFrequencyFromVCF(row[h["INFO"]])
-				i.appendFrequency(freq)
-				break
-			}
-		}
-	}
-}
-
 func (v *variants) readVCF(wg *sync.WaitGroup, id, infile string) {
 	// Reads in infile as a dictionary stored by chromosome
-	var h map[string]int
+	first := true
 	var d string
-	head := true
-	vcf := false
 	defer wg.Done()
+	normal := v.getNormalStatus(infile)
 	f := iotools.OpenFile(infile)
 	defer f.Close()
 	input := iotools.GetScanner(f)
 	for input.Scan() {
 		line := strings.TrimSpace(string(input.Text()))
-		if head == true {
-			if line[0] == '#' && line[1] != '#' {
-				// Skip over remaining vcf header
-				line = strings.Replace(line, "#", "", 1)
-				d = iotools.GetDelim(line)
-				h = iotools.GetHeader(strings.Split(line, d))
-				head = false
-			} else if strings.Contains(line, "##") && vcf == false {
-				// Record file format
-				vcf = true
-			} else if vcf == false {
-				// Read first line of bam-readcount output
-				d = iotools.GetDelim(line)
-				v.examineBamReadcount(id, h, strings.Split(line, d))
-				head = false
-			}
-		} else if vcf == true {
-			v.examineVCF(id, h, strings.Split(line, d))
-		} else {
-			v.examineBamReadcount(id, h, strings.Split(line, d))
+		if first == true {
+			d = iotools.GetDelim(line)
+			first = false
 		}
+		v.examineBamReadcount(normal, id, strings.Split(line, d))
 	}
 }
 
