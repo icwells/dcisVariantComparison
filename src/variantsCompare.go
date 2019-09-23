@@ -69,11 +69,9 @@ func (v *variants) getAlleles(ref string, row []string) map[string]int {
 		for _, i := range row[4:] {
 			s := strings.Split(i, ":")
 			b := setAllele(s[0])
-			if b != "=" {
-				count, err := strconv.Atoi(s[1])
-				if err == nil && count > 0 {
-					ret[b] = count
-				}
+			count, err := strconv.Atoi(s[1])
+			if err == nil && count > 0 {
+				ret[b] = count
 			}
 		}
 	}

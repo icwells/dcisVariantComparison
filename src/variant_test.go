@@ -130,7 +130,7 @@ func TestEvaluate(t *testing.T) {
 			wg.Wait()
 			if i.id == "true" && i.matches == match {
 				t.Errorf("No match where position is %s:%d-%d", i.chr, i.start, i.end)
-			} else if i.id == "false" &&  i.matches > match {
+			} else if i.id == "false" && i.matches > match {
 				t.Errorf("False match where position is %s:%d-%d", i.chr, i.start, i.end)
 			}
 		}

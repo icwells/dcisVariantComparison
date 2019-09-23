@@ -32,17 +32,19 @@ func setAllele(val string) string {
 }
 
 type variant struct {
-	id      string
-	name    string
-	shared  string
-	chr     string
-	start   int
-	end     int
-	ref     string
-	alt     string
-	matches int
-	normal  *counts
-	tumor   *counts
+	id        string
+	name      string
+	shared    string
+	chr       string
+	start     int
+	end       int
+	ref       string
+	alt       string
+	deletion  bool
+	insertion bool
+	matches   int
+	normal    *counts
+	tumor     *counts
 }
 
 func newReadCount(chr, ref string, pos int, bases map[string]int) *variant {
@@ -54,6 +56,15 @@ func newReadCount(chr, ref string, pos int, bases map[string]int) *variant {
 	v.tumor = newCounts()
 	v.tumor.addCounts(v.ref, bases)
 	return v
+}
+
+func (v *variant) setType() {
+	// Determines mutation type
+	if v.ref == "-" {
+		v.insertion = true
+	} else if v.alt == "-" {
+		v.deletion = true
+	}
 }
 
 func newVariant(id, chr, start, end, ref, alt, name, shared string) *variant {
@@ -68,6 +79,7 @@ func newVariant(id, chr, start, end, ref, alt, name, shared string) *variant {
 	v.shared = strings.TrimSpace(shared)
 	v.normal = newCounts()
 	v.tumor = newCounts()
+	v.setType()
 	return v
 }
 
@@ -78,28 +90,78 @@ func (v *variant) String() string {
 	return fmt.Sprintf("%s,%s,%s,%d,%d,%s,%s,%s,%d,%s,%s\n", v.id, v.shared, v.chr, v.start, v.end, v.ref, v.alt, v.name, v.matches, t, n)
 }
 
-func (v *variant) evaluate(wg *sync.WaitGroup, normal bool, row map[int]*variant) {
+func (v *variant) findInsertion(row map[int]*variant) (bool, map[string]int) {
 	// Assembles variant from bam-readcount data
-	defer wg.Done()
+	var found bool
 	a := new(variant)
 	a.tumor = newCounts()
-	for i := 0; i <= v.end-v.start; i++ {
+	for i := 0; i <= len(v.alt); i++ {
 		// Attempt to contruct reference and alternate variants from readcount data
-		idx := i + v.start
-		r, ex := row[idx]
+		r, ex := row[i+v.start]
 		if ex == false {
-			break
+			return false, a.tumor.bases
 		}
 		a.ref += r.ref
 		a.alt += r.tumor.getAlternate(r.ref)
 		a.tumor.addCounts(r.ref, r.tumor.bases)
 	}
-	if a.ref == v.ref && a.alt == v.alt {
+	if a.ref != v.alt && a.alt == v.alt {
+		found = true
+	}
+	return found, a.tumor.bases
+}
+
+func (v *variant) findDeletion(row map[int]*variant) (bool, map[string]int) {
+	// Assembles variant from bam-readcount data
+	var found bool
+	a := new(variant)
+	a.tumor = newCounts()
+	for i := 0; i <= len(v.ref); i++ {
+		// Attempt to contruct reference and alternate variants from readcount data
+		r, ex := row[i+v.start]
+		if ex == false {
+			return false, a.tumor.bases
+		}
+		a.ref += r.ref
+		a.alt += r.tumor.getAlternate(r.ref)
+		a.tumor.addCounts(r.ref, r.tumor.bases)
+	}
+	if a.ref == v.ref && a.alt != v.ref {
+		found = true
+	}
+	return found, a.tumor.bases
+}
+
+func (v *variant) findSNP(row map[int]*variant) (bool, map[string]int) {
+	// Finds matching SNPs
+	var found bool
+	var ret map[string]int
+	a, ex := row[v.start]
+	if ex == true && a.ref == v.ref && a.alt == v.alt {
+		found = true
+		ret = a.tumor.bases
+	}
+	return found, ret
+}
+
+func (v *variant) evaluate(wg *sync.WaitGroup, normal bool, row map[int]*variant) {
+	// Identifies matching variants from bam-readcount data
+	defer wg.Done()
+	var bases map[string]int
+	var found bool
+	if v.insertion {
+
+	} else if v.deletion {
+
+	} else {
+		found, bases = v.findSNP(row)
+	}
+	if found {
 		v.matches++
 		if normal == true {
-			v.normal.addCounts(v.ref, a.tumor.bases)
+			v.normal.addCounts(v.ref, bases)
 		} else {
-			v.tumor.addCounts(v.ref, a.tumor.bases)
+			v.tumor.addCounts(v.ref, bases)
 		}
 	}
 }

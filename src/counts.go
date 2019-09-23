@@ -18,7 +18,7 @@ func newCounts() *counts {
 	// Initializes struct
 	c := new(counts)
 	c.freq = "NA"
-	c.bases = map[string]int{"A": 0, "T": 0, "G": 0, "C": 0}
+	c.bases = map[string]int{"A": 0, "T": 0, "G": 0, "C": 0, "-": 0}
 	return c
 }
 
