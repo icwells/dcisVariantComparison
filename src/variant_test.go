@@ -3,6 +3,7 @@
 package main
 
 import (
+	"sync"
 	"testing"
 )
 
@@ -57,10 +58,9 @@ func TestSetCoordinate(t *testing.T) {
 }
 
 func TestSetAllele(t *testing.T) {
-	var v variant
 	cases := map[string]string{"a ": "A", " . ": "-", "TGCTGT": "TGCTGT", " ATcg": "ATCG"}
 	for k, val := range cases {
-		act := v.setAllele(k)
+		act := setAllele(k)
 		if act != val {
 			t.Errorf("Actual allele %s does not equal expected: %s", act, val)
 		}
@@ -68,46 +68,46 @@ func TestSetAllele(t *testing.T) {
 }
 
 func getVariants() map[string][]*variant {
-	// Returns map of variants for testing
+	// Returns map of expected variants for testing (store expected true/false for id)
 	ret := make(map[string][]*variant)
-	pid := "DCIS_1 "
-	ret["1"] = []*variant{newVariant(pid, "1", "100.0", "200.0", "A", "t", "NA", "A")}
-	ret["1"] = append(ret["1"], newVariant(pid, "1", "1025", "1119", "G", "-", "NA", "A"))
-	ret["2"] = []*variant{newVariant(pid, "2", "25006", "25124", "C", "G", "NA", "A")}
-	ret["X"] = []*variant{newVariant(pid, "X", "90045", "90157.5", ".", "A", "NA", "A")}
+	ret["1"] = []*variant{newVariant("true", "1", "100.0", "100.0", "A", "t", "NA", "A")}
+	ret["1"] = append(ret["1"], newVariant("false", "1", "1025", "1119", "G", "-", "NA", "A"))
+	ret["2"] = []*variant{newVariant("true", "2", "25006", "25009", "CTCA", "GCAT", "NA", "A")}
+	ret["X"] = []*variant{newVariant("true", "X", "90045", "90045.5", ".", "A", "NA", "A")}
 	return ret
 }
 
-func TestEquals(t *testing.T) {
-	vars := getVariants()
-	cases := []struct {
-		pid string
-		pos int
-		ref string
-		alt string
-		exp bool
-		mat int
-	}{
-		{"1", 155, "A", "T", true, 1},
-		{"1", 1075, "G", "C", false, 0},
-		{"2", 8875, "C", "G", false, 0},
-		{"X", 90065, "-", "A", true, 1},
-	}
-	for _, i := range cases {
-		actual := false
-		match := 0
-		for _, v := range vars[i.pid] {
-			a := map[string]int{i.alt: 1}
-			res := v.evaluate(false, i.pos, i.ref, a)
-			if res == true {
-				actual = res
-				match = v.matches
+func getReadCounts() map[string]map[int]*variant {
+	// Returns test cases for variant.evaluate
+	ret := make(map[string]map[int]*variant)
+	ret["1"] = make(map[int]*variant)
+	ret["2"] = make(map[int]*variant)
+	ret["X"] = make(map[int]*variant)
+	ret["1"][155] = newReadCount("1", "A", 155, map[string]int{"A": 3, "T": 9, "G": 0, "C": 0})
+	ret["1"][1075] = newReadCount("1", "G", 1075, map[string]int{"A": 10, "T": 0, "G": 0, "C": 15})
+	ret["2"][25006] = newReadCount("2", "C", 25006, map[string]int{"A": 1, "T": 0, "G": 12, "C": 1})
+	ret["2"][25007] = newReadCount("2", "T", 25007, map[string]int{"A": 1, "T": 0, "G": 2, "C": 9})
+	ret["2"][25008] = newReadCount("2", "C", 25008, map[string]int{"A": 11, "T": 0, "G": 2, "C": 0})
+	ret["2"][25009] = newReadCount("2", "A", 25009, map[string]int{"A": 1, "T": 6, "G": 2, "C": 0})
+	ret["X"][90065] = newReadCount("X", "-", 90065, map[string]int{"A": 10, "T": 0, "G": 0, "C": 6})
+	return ret
+}
+
+func TestEvaluate(t *testing.T) {
+	var wg sync.WaitGroup
+	cases := getVariants()
+	vars := getReadCounts()
+	for k, v := range cases {
+		for _, i := range v {
+			wg.Add(1)
+			match := i.matches
+			i.evaluate(&wg, false, vars[k])
+			wg.Wait()
+			if i.id == "true" && i.matches == match {
+				t.Errorf("No match where position is %s:%d-%d", i.chr, i.start, i.end)
+			} else if i.matches > match {
+				t.Errorf("False match where position is %s:%d-%d", i.chr, i.start, i.end)
 			}
-		}
-		if actual != i.exp {
-			t.Errorf("Actual result %v does not equal expect at position %d", actual, i.pos)
-		} else if match != i.mat {
-			t.Errorf("Actual number of matches %d does not equal expected %d where position is %d", match, i.mat, i.pos)
 		}
 	}
 }

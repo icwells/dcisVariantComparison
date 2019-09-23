@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 func setCoordinate(n string) int {
@@ -17,6 +18,15 @@ func setCoordinate(n string) int {
 	ret, err := strconv.Atoi(n)
 	if err != nil {
 		ret = -1
+	}
+	return ret
+}
+
+func setAllele(val string) string {
+	// Makes sure alleles are in the same format
+	ret := strings.ToUpper(strings.TrimSpace(val))
+	if ret == "." || ret == "=" {
+		ret = "-"
 	}
 	return ret
 }
@@ -35,13 +45,15 @@ type variant struct {
 	tumor   *counts
 }
 
-func (v *variant) setAllele(val string) string {
-	// Makes sure alleles are in the same format
-	ret := strings.ToUpper(strings.TrimSpace(val))
-	if ret == "." {
-		ret = "-"
-	}
-	return ret
+func newReadCount(chr, ref string, pos int, bases map[string]int) *variant {
+	// Returns initialized variant struct for bam-readcount data
+	v := new(variant)
+	v.chr = chr
+	v.ref = ref
+	v.start = pos
+	v.tumor = newCounts()
+	v.tumor.addCounts(v.ref, bases)
+	return v
 }
 
 func newVariant(id, chr, start, end, ref, alt, name, shared string) *variant {
@@ -50,8 +62,8 @@ func newVariant(id, chr, start, end, ref, alt, name, shared string) *variant {
 	v.chr = chr
 	v.start = setCoordinate(start)
 	v.end = setCoordinate(end)
-	v.ref = v.setAllele(ref)
-	v.alt = v.setAllele(alt)
+	v.ref = setAllele(ref)
+	v.alt = setAllele(alt)
 	v.name = strings.TrimSpace(name)
 	v.shared = strings.TrimSpace(shared)
 	v.normal = newCounts()
@@ -66,24 +78,28 @@ func (v *variant) String() string {
 	return fmt.Sprintf("%s,%s,%s,%d,%d,%s,%s,%s,%d,%s,%s\n", v.id, v.shared, v.chr, v.start, v.end, v.ref, v.alt, v.name, v.matches, t, n)
 }
 
-func (v *variant) evaluate(normal bool, pos int, ref string, bases map[string]int) bool {
-	// Returns true if pos is inside v.start/end and ref == v.ref
-	ret := false
-	ref = v.setAllele(ref)
-	if v.start <= pos && v.end >= pos && ref == v.ref {
-		// Only proceed for potential match
-		for k := range bases {
-			k = v.setAllele(k)
-			if k == v.alt {
-				v.matches++
-				ret = true
-				if normal == true {
-					v.normal.addCounts(v.ref, bases)
-				} else {
-					v.tumor.addCounts(v.ref, bases)
-				}
-			}
+func (v *variant) evaluate(wg *sync.WaitGroup, normal bool, row map[int]*variant) {
+	// Assembles variant from bam-readcount data
+	defer wg.Done()
+	a := new(variant)
+	a.tumor = newCounts()
+	for i := 0; i <= v.end-v.start; i++ {
+		// Attempt to contruct reference and alternate variants from readcount data
+		idx := i + v.start
+		r, ex := row[idx]
+		if ex == false {
+			break
+		}
+		a.ref += r.ref
+		a.alt += r.tumor.getAlternate(r.ref)
+		a.tumor.addCounts(r.ref, r.tumor.bases)
+	}
+	if a.ref == v.ref && a.alt == v.alt {
+		v.matches++
+		if normal == true {
+			v.normal.addCounts(v.ref, a.tumor.bases)
+		} else {
+			v.tumor.addCounts(v.ref, a.tumor.bases)
 		}
 	}
-	return ret
 }

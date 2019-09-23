@@ -27,6 +27,19 @@ func (c *counts) String() string {
 	return fmt.Sprintf("%d,%d,%s,%d,%d,%d,%d", c.ref, c.alt, c.freq, c.bases["A"], c.bases["T"], c.bases["G"], c.bases["C"])
 }
 
+func (c *counts) getAlternate(ref string) string {
+	// Returns most common alternate base
+	ret := ref
+	max := 0
+	for k, v := range c.bases {
+		if k != ref && v > max {
+			ret = k
+			max = v
+		}
+	}
+	return ret
+}
+
 func (c *counts) calculateAlleleFrequency() {
 	// Calculates variant allele frequency from bam-readcount data
 	if c.ref > 0 && c.alt > 0 {

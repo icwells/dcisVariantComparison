@@ -43,24 +43,23 @@ func (v *variants) writeOutput() {
 			}
 		}
 	}
-	fmt.Printf("\n\tFound %d new variants.\n", v.neu)
-	fmt.Printf("\tVerified %d of %d variants.\n", matched, v.total)
+	fmt.Printf("\n\tVerified %d of %d variants.\n", matched, v.total)
 	fmt.Printf("\tIdentified %d variants with an average coverage of %s.\n", total, v.getAverage(total, matched))
 }
 
-func (v *variants) identifyVariants(normal bool, id string, target map[string][]*variant) {
+func (v *variants) identifyVariants(normal bool, id string, target map[string]map[int]*variant) {
 	// Compares variants map against target map
-			for k := range bases {
-				if normal == false && k != ref {
-					v.neu++
-				}
-				for _, i := range v.vars[id][chr] {
-					if i.evaluate(normal, pos, ref, bases) {
-						// evaluate method records hits if true
-						break
-					}
-				}
+	var wg sync.WaitGroup
+	for k := range v.vars[id] {
+		row, ex := target[k]
+		if ex {
+			for idx := range v.vars[id][k] {
+				wg.Add(1)
+				go v.vars[id][k][idx].evaluate(&wg, normal, row)
 			}
+		}
+	}
+	wg.Wait()
 }
 
 func (v *variants) getAlleles(ref string, row []string) map[string]int {
@@ -69,7 +68,7 @@ func (v *variants) getAlleles(ref string, row []string) map[string]int {
 	if len(row) >= 5 {
 		for _, i := range row[4:] {
 			s := strings.Split(i, ":")
-			b := strings.ToUpper(s[0])
+			b := setAllele(s[0])
 			if b != "=" {
 				count, err := strconv.Atoi(s[1])
 				if err == nil && count > 0 {
@@ -81,9 +80,9 @@ func (v *variants) getAlleles(ref string, row []string) map[string]int {
 	return ret
 }
 
-func (v *variants) examineBamReadcount(row []string) *readcount {
+func (v *variants) examineBamReadcount(id string, row []string) *variant {
 	// Compares variant from bam-readcount to v.vars
-	var ret *readcount
+	var ret *variant
 	chr := v.setChromosome(row[0])
 	if _, ex := v.vars[id][chr]; ex == true {
 		pos := setCoordinate(row[1])
@@ -111,7 +110,7 @@ func (v *variants) readVCF(wg *sync.WaitGroup, id, infile string) {
 	var d string
 	defer wg.Done()
 	first := true
-	target := make(map[string][]*readcount)
+	target := make(map[string]map[int]*variant)
 	normal := v.getNormalStatus(infile)
 	f := iotools.OpenFile(infile)
 	defer f.Close()
@@ -122,9 +121,12 @@ func (v *variants) readVCF(wg *sync.WaitGroup, id, infile string) {
 			d = iotools.GetDelim(line)
 			first = false
 		}
-		rc := v.examineBamReadcount(strings.Split(line, d))
-		if rc.isSet() {
-			target[rc.chr] = append(target[rc.chr], rc)
+		rc := v.examineBamReadcount(id, strings.Split(line, d))
+		if len(rc.id) > 0 {
+			if _, ex := target[rc.chr]; ex == false {
+				target[rc.chr] = make(map[int]*variant)
+			}
+			target[rc.chr][rc.start] = rc
 		}
 	}
 	v.identifyVariants(normal, id, target)
