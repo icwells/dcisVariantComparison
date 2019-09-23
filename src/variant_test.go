@@ -7,6 +7,31 @@ import (
 	"testing"
 )
 
+func TestGetAlternate(t *testing.T) {
+	// Tests counts.getAlternate
+	vars := getReadCounts()
+	cases := []struct {
+		chr string
+		pos int
+		ref string
+		exp string
+	}{
+		{"1", 100, "A", "T"},
+		{"1", 1075, "G", "C"},
+		{"2", 25006, "C", "G"},
+		{"2", 25007, "T", "C"},
+		{"2", 25008, "C", "A"},
+		{"2", 25009, "A", "T"},
+		{"X", 90065, "-", "A"},
+	}
+	for _, v := range cases {
+		act := vars[v.chr][v.pos].tumor.getAlternate(v.ref)
+		if act != v.exp {
+			t.Errorf("Actual alternate allele %s does not equal %s for %s:%d", act, v.exp, v.chr, v.pos)
+		}
+	}
+}
+
 func TestGetSampleID(t *testing.T) {
 	var v variants
 	v.vars = make(map[string]map[string][]*variant)
@@ -73,7 +98,7 @@ func getVariants() map[string][]*variant {
 	ret["1"] = []*variant{newVariant("true", "1", "100.0", "100.0", "A", "t", "NA", "A")}
 	ret["1"] = append(ret["1"], newVariant("false", "1", "1025", "1119", "G", "-", "NA", "A"))
 	ret["2"] = []*variant{newVariant("true", "2", "25006", "25009", "CTCA", "GCAT", "NA", "A")}
-	ret["X"] = []*variant{newVariant("true", "X", "90045", "90045.5", ".", "A", "NA", "A")}
+	ret["X"] = []*variant{newVariant("true", "X", "90065", "90065.5", ".", "A", "NA", "A")}
 	return ret
 }
 
@@ -83,7 +108,7 @@ func getReadCounts() map[string]map[int]*variant {
 	ret["1"] = make(map[int]*variant)
 	ret["2"] = make(map[int]*variant)
 	ret["X"] = make(map[int]*variant)
-	ret["1"][155] = newReadCount("1", "A", 155, map[string]int{"A": 3, "T": 9, "G": 0, "C": 0})
+	ret["1"][100] = newReadCount("1", "A", 100, map[string]int{"A": 3, "T": 9, "G": 0, "C": 0})
 	ret["1"][1075] = newReadCount("1", "G", 1075, map[string]int{"A": 10, "T": 0, "G": 0, "C": 15})
 	ret["2"][25006] = newReadCount("2", "C", 25006, map[string]int{"A": 1, "T": 0, "G": 12, "C": 1})
 	ret["2"][25007] = newReadCount("2", "T", 25007, map[string]int{"A": 1, "T": 0, "G": 2, "C": 9})
@@ -105,7 +130,7 @@ func TestEvaluate(t *testing.T) {
 			wg.Wait()
 			if i.id == "true" && i.matches == match {
 				t.Errorf("No match where position is %s:%d-%d", i.chr, i.start, i.end)
-			} else if i.matches > match {
+			} else if i.id == "false" &&  i.matches > match {
 				t.Errorf("False match where position is %s:%d-%d", i.chr, i.start, i.end)
 			}
 		}
