@@ -80,7 +80,7 @@ func (v *variants) getAlleles(ref string, row []string) map[string]int {
 
 func (v *variants) examineBamReadcount(id string, row []string) *variant {
 	// Compares variant from bam-readcount to v.vars
-	var ret *variant
+	ret := new(variant)
 	chr := v.setChromosome(row[0])
 	if _, ex := v.vars[id][chr]; ex == true {
 		pos := setCoordinate(row[1])
@@ -120,7 +120,7 @@ func (v *variants) readVCF(wg *sync.WaitGroup, id, infile string) {
 			first = false
 		}
 		rc := v.examineBamReadcount(id, strings.Split(line, d))
-		if len(rc.id) > 0 {
+		if len(rc.chr) > 0 {
 			if _, ex := target[rc.chr]; ex == false {
 				target[rc.chr] = make(map[int]*variant)
 			}
