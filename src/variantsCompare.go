@@ -28,7 +28,7 @@ func (v *variants) writeOutput() {
 	out := iotools.CreateFile(v.outfile)
 	defer out.Close()
 	head := "Patient,Shared,Chr,Start,End,REF,ALT,Name,Coverage,"
-	head += "TReferenceReads,TVariantReads,TAlleleFrequency,A,T,G,C"
+	head += "TReferenceReads,TVariantReads,TAlleleFrequency,A,T,G,C,"
 	head += "NReferenceReads,NVariantReads,NAlleleFrequency,A,T,G,C\n"
 	out.WriteString(head)
 	for _, val := range v.vars {

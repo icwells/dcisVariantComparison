@@ -98,7 +98,7 @@ func getVariants() map[string][]*variant {
 	ret["1"] = []*variant{newVariant("true", "1", "100.0", "100.0", "A", "t", "NA", "A")}
 	ret["1"] = append(ret["1"], newVariant("false", "1", "1025", "1119", "G", "-", "NA", "A"))
 	ret["2"] = []*variant{newVariant("true", "2", "25006", "25009", "CTCA", "-", "NA", "A")}
-	ret["X"] = []*variant{newVariant("true", "X", "90065", "90065.5", ".", "A", "NA", "A")}
+	ret["X"] = []*variant{newVariant("true", "X", "90065", "90065.5", ".", "AT", "NA", "A")}
 	return ret
 }
 
@@ -115,6 +115,7 @@ func getReadCounts() map[string]map[int]*variant {
 	ret["2"][25008] = newReadCount("2", "C", 25008, map[string]int{"A": 11, "T": 0, "G": 2, "C": 0})
 	ret["2"][25009] = newReadCount("2", "A", 25009, map[string]int{"A": 1, "T": 6, "G": 2, "C": 0})
 	ret["X"][90065] = newReadCount("X", "-", 90065, map[string]int{"A": 10, "T": 0, "G": 0, "C": 6})
+	ret["X"][90066] = newReadCount("X", "-", 90066, map[string]int{"A": 0, "T": 9, "G": 0, "C": 6})
 	return ret
 }
 
