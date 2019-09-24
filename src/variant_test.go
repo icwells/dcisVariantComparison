@@ -97,7 +97,7 @@ func getVariants() map[string][]*variant {
 	ret := make(map[string][]*variant)
 	ret["1"] = []*variant{newVariant("true", "1", "100.0", "100.0", "A", "t", "NA", "A")}
 	ret["1"] = append(ret["1"], newVariant("false", "1", "1025", "1119", "G", "-", "NA", "A"))
-	ret["2"] = []*variant{newVariant("true", "2", "25006", "25009", "CTCA", "GCAT", "NA", "A")}
+	ret["2"] = []*variant{newVariant("true", "2", "25006", "25009", "CTCA", "-", "NA", "A")}
 	ret["X"] = []*variant{newVariant("true", "X", "90065", "90065.5", ".", "A", "NA", "A")}
 	return ret
 }
@@ -129,9 +129,9 @@ func TestEvaluate(t *testing.T) {
 			i.evaluate(&wg, false, vars[k])
 			wg.Wait()
 			if i.id == "true" && i.matches == match {
-				t.Errorf("No match where position is %s:%d-%d", i.chr, i.start, i.end)
+				t.Errorf("No match for position %s:%d-%d", i.chr, i.start, i.end)
 			} else if i.id == "false" && i.matches > match {
-				t.Errorf("False match where position is %s:%d-%d", i.chr, i.start, i.end)
+				t.Errorf("False match for position %s:%d-%d", i.chr, i.start, i.end)
 			}
 		}
 	}

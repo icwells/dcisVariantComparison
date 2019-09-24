@@ -5,7 +5,30 @@ package main
 import (
 	"fmt"
 	"strconv"
+	"strings"
 )
+
+func setCoordinate(n string) int {
+	// Removes decimal from coordinate number
+	n = strings.Replace(n, ",", "", -1)
+	if strings.Contains(n, ".") {
+		n = strings.Split(n, ".")[0]
+	}
+	ret, err := strconv.Atoi(n)
+	if err != nil {
+		ret = -1
+	}
+	return ret
+}
+
+func setAllele(val string) string {
+	// Makes sure alleles are in the same format
+	ret := strings.ToUpper(strings.TrimSpace(val))
+	if ret == "." || ret == "=" {
+		ret = "-"
+	}
+	return ret
+}
 
 type counts struct {
 	ref   int
