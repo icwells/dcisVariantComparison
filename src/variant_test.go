@@ -43,7 +43,7 @@ func TestGetSampleID(t *testing.T) {
 		"/ampliseq2/vcfs/DCIS-064-A81-inv.vcf": "DCIS64",
 		"ampliseq2/vcfs/DCIS-267-B1-node.vcf":  "DCIS267",
 		"ampliseq2/vcfs/DCIS-168-C4-inv.vcf":   "DCIS168_C4",
-		"ampliseq2/vcfs/DCIS-300-C4-inv.vcf":   "",
+		"ampliseq2/vcfs/DCIS-030-C4-inv.vcf":   "DCIS30",
 	}
 	for k, val := range cases {
 		act := v.getSampleID(k)

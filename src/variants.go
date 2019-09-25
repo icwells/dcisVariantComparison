@@ -25,17 +25,17 @@ func (v *variants) getSampleID(filename string) string {
 	// Attempts to resolve result of getSampleName with variants keys
 	n := strings.Split(iotools.GetFileName(filename), "-")
 	// Add DCIS and Sample name
+	if n[1][0] == '0' {
+		n[1] = n[1][1:]
+	}
 	ret := n[0] + n[1]
 	if _, err := strconv.Atoi(string(n[2][1])); err == nil {
 		// Add alpha-numeric codes
 		ret = fmt.Sprintf("%s_%s", ret, n[2])
 	}
 	if _, ex := v.vars[ret]; ex == false {
+		// Trim to base ID for matching later
 		ret = strings.Split(ret, "_")[0]
-		ret = strings.Replace(ret, "0", "", -1)
-		if _, ex := v.vars[ret]; ex == false {
-			ret = ""
-		}
 	}
 	return ret
 }
