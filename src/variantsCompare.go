@@ -105,17 +105,18 @@ func (v *variants) getNormalStatus(infile string) bool {
 	return ret
 }
 
-func (v *variants) findIDs(id string) []string {
+func (v *variants) findIDs(normal bool, id string) []string {
 	// Finds all mathcin sample ids
 	var ret []string
-	if _, ex := v.vars[id]; ex {
-		ret = append(ret, id)
-	} else {
+	if normal {
+		id = strings.Split(id, "_")[0]
 		for k := range v.vars {
 			if strings.Contains(k, id) {
 				ret = append(ret, k)
 			}
 		}
+	} else if _, ex := v.vars[id]; ex {
+		ret = append(ret, id)
 	}
 	return ret
 }
@@ -126,9 +127,9 @@ func (v *variants) readVCF(wg *sync.WaitGroup, id, infile string) {
 	defer wg.Done()
 	first := true
 	target := make(map[string]map[int]*variant)
-	ids := v.findIDs(id)
+	normal := v.getNormalStatus(infile)
+	ids := v.findIDs(normal, id)
 	if len(ids) > 0 {
-		normal := v.getNormalStatus(infile)
 		f := iotools.OpenFile(infile)
 		defer f.Close()
 		input := iotools.GetScanner(f)

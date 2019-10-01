@@ -3,6 +3,7 @@
 package main
 
 import (
+	"github.com/icwells/go-tools/strarray"
 	"sync"
 	"testing"
 )
@@ -32,23 +33,60 @@ func TestGetAlternate(t *testing.T) {
 	}
 }
 
-func TestGetSampleID(t *testing.T) {
+func getVars() *variants {
+	// Returns struct for testing
 	var v variants
 	v.vars = make(map[string]map[string][]*variant)
 	v.vars["DCIS64"] = make(map[string][]*variant)
 	v.vars["DCIS267"] = make(map[string][]*variant)
 	v.vars["DCIS168_C4"] = make(map[string][]*variant)
+	v.vars["DCIS168_C8"] = make(map[string][]*variant)
+	return &v
+}
+
+func TestGetSampleID(t *testing.T) {
+	v := getVars()
 	cases := map[string]string{
-		"ampliseq2/vcfs/DCIS-064-A61.vcf":      "DCIS64",
-		"/ampliseq2/vcfs/DCIS-064-A81-inv.vcf": "DCIS64",
-		"ampliseq2/vcfs/DCIS-267-B1-node.vcf":  "DCIS267",
-		"ampliseq2/vcfs/DCIS-168-C4-inv.vcf":   "DCIS168_C4",
-		"ampliseq2/vcfs/DCIS-030-C4-inv.vcf":   "DCIS30",
+		"ampliseq2/vcfs/DCIS-064-A61.vcf":        "DCIS64",
+		"/ampliseq2/vcfs/DCIS-064-A81-inv.vcf":   "DCIS64",
+		"/ampliseq2/vcfs/DCIS-064-A1-BENIGN.vcf": "DCIS64",
+		"ampliseq2/vcfs/DCIS-168-B1-node.vcf":    "DCIS168",
+		"ampliseq2/vcfs/DCIS-168-C4-inv.vcf":     "DCIS168_C4",
+		"ampliseq2/vcfs/DCIS-168-C8-inv.vcf":     "DCIS168_C8",
+		"ampliseq2/vcfs/DCIS-030-C4-inv.vcf":     "DCIS30",
 	}
 	for k, val := range cases {
 		act := v.getSampleID(k)
 		if act != val {
 			t.Errorf("Actual sample ID %s does not equal expected: %s", act, val)
+		}
+	}
+}
+
+func TestFindIDs(t *testing.T) {
+	// Tests getNormalStatus and findIDs
+	v := getVars()
+	cases := []struct {
+		name string
+		exp  []string
+	}{
+		{"ampliseq2/vcfs/DCIS-168-C1-BENIGN.vcf", []string{"DCIS168_C4", "DCIS168_C8"}},
+		{"ampliseq2/vcfs/DCIS-168-C4-inv.vcf", []string{"DCIS168_C4"}},
+		{"/ampliseq2/vcfs/DCIS-064-A1-BENIGN.vcf", []string{"DCIS64"}},
+		{"/ampliseq2/vcfs/DCIS-267-B1-node.vcf", []string{"DCIS267"}},
+	}
+	for _, c := range cases {
+		id := v.getSampleID(c.name)
+		normal := v.getNormalStatus(c.name)
+		ids := v.findIDs(normal, id)
+		if len(ids) != len(c.exp) {
+			t.Errorf("Actual number of id matches %d does not equal expected: %d", len(ids), len(c.exp))
+		} else {
+			for _, i := range c.exp {
+				if !strarray.InSliceStr(ids, i) {
+					t.Errorf("Expected ID match %s not found in results.", i)
+				}
+			}
 		}
 	}
 }
